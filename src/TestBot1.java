@@ -12,10 +12,10 @@ public class TestBot1 extends DefaultBWListener {
     private Game game;
 
     private Player self;
-	private int cyclesForSearching = 0;
-	private int maxCyclesForSearching = 0;
-	
-	Unit bunkerBuilder;
+	  private int cyclesForSearching = 0;
+	  private int maxCyclesForSearching = 0;
+
+	  Unit bunkerBuilder;
 
     public void run() {
         mirror.getModule().setEventListener(this);
@@ -31,7 +31,7 @@ public class TestBot1 extends DefaultBWListener {
     public void onStart() {
         game = mirror.getGame();
         self = game.self();
-		bunkerBuilder = null;
+		    bunkerBuilder = null;
 
         //Use BWTA to analyze map
         //This may take a few minutes if the map is processed first time!
@@ -39,7 +39,7 @@ public class TestBot1 extends DefaultBWListener {
         BWTA.readMap();
         BWTA.analyze();
         System.out.println("Map data ready");
-        
+
         int i = 0;
         for(BaseLocation baseLocation : BWTA.getBaseLocations()){
         	System.out.println("Base location #" + (++i) + ". Printing location's region polygon:");
@@ -53,27 +53,25 @@ public class TestBot1 extends DefaultBWListener {
 
     @Override
     public void onFrame() {
-        //game.setTextSize(10);
-        game.drawTextScreen(10, 10, "Playing as " + self.getName() + " - " + self.getRace());
+    //game.setTextSize(10);
+    game.drawTextScreen(10, 10, "Playing as " + self.getName() + " - " + self.getRace());
 
-        StringBuilder units = new StringBuilder("My units:\n");
-    	List<Unit> workers = new ArrayList<>();
-    	List<Unit> barracks = new ArrayList<>();
-    	List<Unit> marines = new ArrayList<>();
-    	Unit commandCenter = null;
-		Unit bunker = null;
-		
+    StringBuilder units = new StringBuilder("My units:\n");
+	  List<Unit> workers = new ArrayList<>();
+	  List<Unit> barracks = new ArrayList<>();
+	  List<Unit> marines = new ArrayList<>();
+	  Unit commandCenter = null;
+    Unit bunker = null;
+
 		// iterate through my units
 		for (Unit myUnit : self.getUnits()) {
 			if (myUnit.getType().isWorker()) {
 				workers.add(myUnit);
 			}
-
-			// if there's enough minerals, train an SCV
 			if (myUnit.getType() == UnitType.Terran_Command_Center) {
 				commandCenter = myUnit;
 			}
-			if (myUnit.getType() == UnitType.Terran_Barracks && myUnit.isBeingConstructed() == false) {
+			if (myUnit.getType() == UnitType.Terran_Barracks) {
 				barracks.add(myUnit);
 			}
 			if (myUnit.getType() == UnitType.Terran_Marine) {
@@ -83,13 +81,23 @@ public class TestBot1 extends DefaultBWListener {
 				myUnit.attack(myUnit.getPosition());
 			}
 		}
-        
+
+		if (workers.size() >= 8) {
+			bunkerBuilder = workers.get(8);
+			TilePosition buildTile = getBuildTile(bunkerBuilder, UnitType.Terran_Barracks, bunkerBuilder.getTilePosition());
+			System.out.println("Going to build barrack");
+			if (buildTile == null) {
+				bunkerBuilder.build(UnitType.Terran_Bunker, buildTile);
+				System.out.println("Building barrack");
+			} else {
+				bunkerBuilder.move(BWTA.getNearestChokepoint(bunkerBuilder.getPosition()).getCenter());
+				System.out.println("Where do i build barrack");
+			}
+		}
 
         //iterate through my workers
         for (Unit myUnit : workers) {
             units.append(myUnit.getType()).append(" ").append(myUnit.getTilePosition()).append("\n");
-
-
 
             //if it's a worker and it's idle, send it to the closest mineral patch
             if (myUnit.getType().isWorker() && myUnit.isIdle()) {
@@ -109,29 +117,12 @@ public class TestBot1 extends DefaultBWListener {
                     myUnit.gather(closestMineral, false);
                 }
             }
-			
-
         }
-        
-		if (bunkerBuilder == null && workers.size() > 10) {
-			bunkerBuilder = workers.get(10);
-		}
-		
-		if (bunker == null && barracks.size() >= 1 && workers.size() > 10 ) {
-			TilePosition buildTile = getBuildTile(bunkerBuilder, UnitType.Terran_Barracks, bunkerBuilder.getTilePosition());
-			if (buildTile != null) {
-				bunkerBuilder.build(UnitType.Terran_Bunker, buildTile);
-			} else {
-				bunkerBuilder.move(BWTA.getNearestChokepoint(bunkerBuilder.getPosition()).getCenter());
-			}
-		} else  if (workers.size() > 10) {
-			game.drawTextMap(workers.get(10).getPosition(), "He will build bunker");
-		}
-		
-		if (commandCenter.getTrainingQueue().isEmpty() && workers.size() < 20 && self.minerals() >= 50) {
+
+		if (commandCenter.getTrainingQueue().isEmpty()) {
 			commandCenter.build(UnitType.AllUnits.Terran_SCV);
 		}
-		
+
 		for (Unit barrack : barracks) {
 			if (barrack.getTrainingQueue().isEmpty()) {
 				barrack.build(UnitType.AllUnits.Terran_Marine);
@@ -142,7 +133,7 @@ public class TestBot1 extends DefaultBWListener {
         //draw my units on screen
         game.drawTextScreen(10, 25, units.toString());
     }
-	
+
  // Returns a suitable TilePosition to build a given building type near
  	// specified TilePosition aroundTile, or null if not found. (builder
  	// parameter is our worker)
