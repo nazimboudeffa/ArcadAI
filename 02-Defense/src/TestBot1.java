@@ -49,7 +49,7 @@ public class TestBot1 extends DefaultBWListener {
     public void onFrame() {
 		List<Unit> workers = new ArrayList<>();
 		List<Unit> marines = new ArrayList<>();
-		Position attacked = null;
+		Position attackedPosition = null;
 
         //game.setTextSize(10);
         game.drawTextScreen(10, 10, "Playing as " + self.getName() + " - " + self.getRace());
@@ -97,9 +97,11 @@ public class TestBot1 extends DefaultBWListener {
 			}
 
 			if (myUnit.isUnderAttack() && myUnit.canAttack()) {
-				attacked = myUnit.getPosition();
+				attackedPosition = myUnit.getPosition();
 				for (Unit marine : marines){
-					marine.attack(attacked);
+					if (!marine.isAttacking()){
+						marine.attack(attackedPosition);
+					}
 				}
 			}
         }
@@ -128,7 +130,7 @@ public class TestBot1 extends DefaultBWListener {
 				if (myUnit.getType() == UnitType.Terran_SCV) {
 					//get a nice place to build a supply depot
 					TilePosition buildTile =
-						getBuildTile(myUnit, UnitType.Terran_Supply_Depot, self.getStartLocation());
+						getBuildTile(myUnit, UnitType.Terran_Terran_Barracks, self.getStartLocation());
 					//and, if found, send the worker to build it (and leave others alone - break;)
 					if (buildTile != null) {
 						myUnit.build(UnitType.Terran_Barracks, buildTile);
