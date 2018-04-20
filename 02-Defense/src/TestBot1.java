@@ -50,6 +50,7 @@ public class TestBot1 extends DefaultBWListener {
 		List<Unit> workers = new ArrayList<>();
 		List<Unit> marines = new ArrayList<>();
 		Position attackedPosition = null;
+		Position positionToAttack = null;
 
         //game.setTextSize(10);
         game.drawTextScreen(10, 10, "Playing as " + self.getName() + " - " + self.getRace());
@@ -96,14 +97,20 @@ public class TestBot1 extends DefaultBWListener {
 				marines.add(myUnit);
 			}
 
-			if (myUnit.isUnderAttack() || myUnit.canAttack()) {
-				attackedPosition = myUnit.getPosition();
-				for (Unit marine : marines){
-					if (!marine.isAttacking() && !marine.isMoving()){
-						marine.attack(attackedPosition);
-					}
-				}
-			}
+			//all attackers in the visible area
+			if (myUnit.isUnderAttack() && myUnit.canAttack()) {
+                attackedPosition = myUnit.getPosition();
+                 for (Unit enemyAttacker : game.enemy().getUnits()) {
+                    if (enemyAttacker.isAttacking()) {
+                        positionToAttack = enemyAttacker.getPosition();
+                        for (Unit marine : marines){
+                            if (!marine.isAttacking() && !marine.isMoving()){
+                                marine.attack(positionToAttack);
+                            }
+                        }
+                    }
+                 }
+            }
         }
 
 		//if we're running out of supply and have enough minerals ...
