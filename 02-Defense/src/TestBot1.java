@@ -96,10 +96,10 @@ public class TestBot1 extends DefaultBWListener {
 				marines.add(myUnit);
 			}
 
-			if (myUnit.isUnderAttack() && myUnit.canAttack()) {
+			if (myUnit.isUnderAttack() || myUnit.canAttack()) {
 				attackedPosition = myUnit.getPosition();
 				for (Unit marine : marines){
-					if (!marine.isAttacking()){
+					if (!marine.isAttacking() && !marine.isMoving()){
 						marine.attack(attackedPosition);
 					}
 				}
@@ -130,7 +130,7 @@ public class TestBot1 extends DefaultBWListener {
 				if (myUnit.getType() == UnitType.Terran_SCV) {
 					//get a nice place to build a supply depot
 					TilePosition buildTile =
-						getBuildTile(myUnit, UnitType.Terran_Terran_Barracks, self.getStartLocation());
+						getBuildTile(myUnit, UnitType.Terran_Barracks, self.getStartLocation());
 					//and, if found, send the worker to build it (and leave others alone - break;)
 					if (buildTile != null) {
 						myUnit.build(UnitType.Terran_Barracks, buildTile);
