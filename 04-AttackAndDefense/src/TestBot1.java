@@ -11,8 +11,13 @@ public class TestBot1 extends DefaultBWListener {
     private Game game;
 
     private Player self;
+
+//Units	
+	private Unit bBunker= null;
+	private Unit bSupply= null;
+	private Unit bBarrack= null;
 	
-	private Unit bunkerBuilder = null;
+//Orders	
 	private boolean gogogo = false;
 	
     public void run() {
@@ -22,7 +27,7 @@ public class TestBot1 extends DefaultBWListener {
 
     @Override
     public void onUnitCreate(Unit unit) {
-        System.out.println("New unit discovered " + unit.getType());
+        //System.out.println("New unit discovered " + unit.getType());
     }
 
     @Override
@@ -51,15 +56,21 @@ public class TestBot1 extends DefaultBWListener {
     @Override
     public void onFrame() {
 		List<Unit> workers = new ArrayList<>();
+		List<Unit> builders = new ArrayList<>();
+		
+		List<Unit> marines = new ArrayList<>();
 		List<Unit> mDefenders = new ArrayList<>();
 		List<Unit> mAttackers = new ArrayList<>();
+		
+		List<Unit> supplys = new ArrayList<>();
 		List<Unit> barracks = new ArrayList<>();
 		List<Unit> bunkers = new ArrayList<>();
+		
 		Position attackedPosition = null;
 		Position positionToAttack = null;
-		int nbBunkers = 3;
-		int nbDefenders = 4 * nbBunkers;
-		int nbAttackers = nbDefenders;
+		int maxBunkers = 3;
+		int maxDefenders = 4 * maxBunkers;
+		int minAttackers = 10;
 		int numBunkerBuilder = 8;
 
         //game.setTextSize(10);
@@ -100,54 +111,69 @@ public class TestBot1 extends DefaultBWListener {
             }
 			
 			if (myUnit.getType() == UnitType.Terran_SCV) {
-				workers.add(myUnit);
+				if (myUnit.exists()){
+					workers.add(myUnit);
+				}
 			}
 			
 			if ((myUnit.getType() == UnitType.Terran_Marine) ) {
 				if (myUnit.exists()){
-					if (mDefenders.size() >= nbDefenders) {
+					marines.add(myUnit);
+					/*
+					if (mDefenders.size() >= maxDefenders) {
 						mAttackers.add(myUnit);
 						game.drawTextMap(myUnit.getPosition(), "Attacker");
 					} else {
 						mDefenders.add(myUnit);
 						game.drawTextMap(myUnit.getPosition(), "Defender");	
 					}	
+					*/
 				}
 			}
 			
 				
 			if (myUnit.getType() == UnitType.Terran_Bunker) {
-				bunkers.add(myUnit);
+				if (myUnit.exists()){
+					bunkers.add(myUnit);
+				}
 			}
 			
 			if (myUnit.getType() == UnitType.Terran_Barracks) {
-				barracks.add(myUnit);
+				if (myUnit.exists()){
+					barracks.add(myUnit);
+				}
+			}
+/*			
+			if ((bSupply == null) && (workers.size()>8) && (workers.get(8).exists() )){			
+				bSupply = workers.get(8);
+				game.drawTextMap(bSupply.getPosition(), "Supply Builder");
+			}
+*/			
+			if ((bBunker == null) && (workers.size()>9) && (workers.get(9).exists() )){			
+				bBunker = workers.get(9);
+				game.drawTextMap(bBunker.getPosition(), "Bunker Builder");
+				//bunkerBuilder.move(BWTA.getNearestChokepoint(bunkerBuilder.getPosition()).getCenter());
 			}
 			
-			if ((bunkerBuilder == null) && (workers.size()>8)){
-				bunkerBuilder = workers.get(8);
-				game.drawTextMap(bunkerBuilder.getPosition(), "Bunker Builder");
-				//bunkerBuilder.move(BWTA.getNearestChokepoint(bunkerBuilder.getPosition()).getCenter());
+			if ((bBarrack == null) && (workers.size()>10) && (workers.get(10).exists() )){			
+				bBarrack= workers.get(10);
+				game.drawTextMap(bBarrack.getPosition(), "SupplyBuilder");
 			}
 			
 			//all attackers in the visible area
 			if (myUnit.isUnderAttack() && myUnit.canAttack()) {
-                 for (Unit enemyAttacker : game.enemy().getUnits()) {
-                    if (enemyAttacker.isAttacking()) {
-                        for (Unit marine : mDefenders){
-                            if (!marine.isAttacking() && !marine.isMoving()){
-								marine.attack(enemyAttacker);								
-							}
-                        }
+                 for (Unit eAttacker : game.enemy().getUnits()) {
+                    if (eAttacker.isAttacking()) {
+						myUnit.attack(eAttacker);								
                     }
                  }
             }			
         }
 		
 		//if we're running out of supply and have enough minerals ...
-		if ((self.supplyTotal() - self.supplyUsed() < 4) && (self.minerals() >= 100)) {
+		if ((self.supplyTotal() - self.supplyUsed() < 8) && (self.minerals() >= 100)) {
 			//iterate over units to find a worker
-			for (Unit myUnit : self.getUnits()) {
+			for (Unit myUnit : workers) {
 				if (myUnit.getType() == UnitType.Terran_SCV) {
 					//get a nice place to build a supply depot
 					TilePosition buildTile =
@@ -161,78 +187,85 @@ public class TestBot1 extends DefaultBWListener {
 			}
 		}
 		
-		//if we're running out of supply and have enough minerals ...
-		if ((workers.size() > 8) && (self.minerals() >= 150)) {
-			//iterate over units to find a worker
-			for (Unit myUnit : self.getUnits()) {
-				if (myUnit.getType() == UnitType.Terran_SCV) {
-					//get a nice place to build a supply depot
-					TilePosition buildTile =
-						getBuildTile(myUnit, UnitType.Terran_Barracks, self.getStartLocation());
-					//and, if found, send the worker to build it (and leave others alone - break;)
-					if (buildTile != null) {
-						myUnit.build(UnitType.Terran_Barracks, buildTile);
-						break;
+		if ((bBarrack != null) && (self.minerals() >= 150) && (barracks.size() <= 4)) {
+			TilePosition buildTile = getBuildTile(bBarrack, UnitType.Terran_Barracks, self.getStartLocation());
+			if (buildTile != null) {
+				bBarrack.build(UnitType.Terran_Barracks, buildTile);
+				game.drawTextMap(bBarrack.getPosition(), "Building Barrack");
+			}
+		}
+	
+/*	
+		if ((bSupply != null) && (self.supplyTotal() - self.supplyUsed() < 4) && (self.minerals() >= 100)) {
+			TilePosition buildTile = getBuildTile(bSupply, UnitType.Terran_Supply_Depot, self.getStartLocation());
+			if (buildTile != null) {
+				bSupply.build(UnitType.Terran_Supply_Depot, buildTile);
+				game.drawTextMap(bSupply.getPosition(), "Building Supply");
+			}
+		}
+*/			
+		if ((bBunker != null) && (self.minerals() >= 100)  && (barracks.size() >= 1) && (bunkers.size() <= 3)) {
+			if (bunkers.size() < maxBunkers ) {
+				TilePosition buildTile = getBuildTile(bBunker, UnitType.Terran_Bunker, self.getStartLocation());
+				if (buildTile != null) {
+				bBunker.build(UnitType.Terran_Bunker, buildTile);
+				game.drawTextMap(bBunker.getPosition(), "Building Bunker");
+				}
+			}
+		}	
+
+		for (Unit marine : marines){
+			if (gogogo){
+				mAttackers.add(marine);
+				game.drawTextMap(marine.getPosition(), "Attacker");
+				if (mAttackers.size() >=11) {
+/* don't need to do it again as it iterate on all units earlier					
+					if (marine.isUnderAttack() && marine.canAttack()) {
+						 for (Unit eAttacker : game.enemy().getUnits()) {
+							if (eAttacker.isAttacking()) {
+								if (!marine.isAttacking() && !marine.isMoving()){
+									marine.attack(eAttacker);								
+								}
+							}               
+						 }
+					  }
+*/
+					for (Unit attacker : mAttackers){
+						Position basePosition = new Position( (game.mapWidth()- self.getStartLocation().getX())* 32, (game.mapHeight()-self.getStartLocation().getY()) * 32);
+						if (attacker.getDistance(basePosition) < 100){
+							attacker.move(randomPosition());
+						}	else {
+							attacker.move(basePosition); 
+						}
+					}
+				} else {
+					gogogo = false;
+				}
+			} else {			
+				for (Unit bunker : bunkers){
+					if (bunker != null && bunker.getLoadedUnits().size() < 4 ) {
+						game.drawTextMap(marine.getPosition(), "Defender");
+						marine.load(bunker);
+					}
+					//if we go out of this case the marines belong to the marines list before
+					if  ((bunker.getLoadedUnits().size() == 4) && (bunkers.size() == maxBunkers)) {
+						if (marine.isLoaded()) {
+							mDefenders.add(marine);
+							game.drawTextMap(marine.getPosition(), "Defender");
+						}
+						gogogo = true;
 					}
 				}
 			}
 		}
 			
-		if ((bunkerBuilder != null) && (self.minerals() >= 100)  && (barracks.size() >= 1)) {
-			if (bunkers.size() < nbBunkers ) {
-				//TilePosition buildTile = getBuildTile(bunkerBuilder, UnitType.Terran_Bunker, self.getStartLocation());
-				TilePosition buildTile = getBuildTile(bunkerBuilder, UnitType.Terran_Bunker, self.getStartLocation());
-				if (buildTile != null) {
-				bunkerBuilder.build(UnitType.Terran_Bunker, buildTile);
-				game.drawTextMap(bunkerBuilder.getPosition(), "Building Bunker");
-				}
-			} else {
-				TilePosition buildTile = getBuildTile(bunkerBuilder, UnitType.Terran_Supply_Depot, self.getStartLocation());
-				if (buildTile != null) {
-					bunkerBuilder.build(UnitType.Terran_Supply_Depot, buildTile);
-					game.drawTextMap(bunkerBuilder.getPosition(), "Building Supply");
-				}
-			}
-		}
-		
-		for (Unit bunker : bunkers){
-			if (bunker != null && bunker.getLoadedUnits().size() < 4 ) {
-				for (Unit marine : mDefenders){
-					marine.load(bunker);
-				}
-			}
-		}
-	
-		//all attackers in the visible area
-		for (Unit marine : mAttackers){			
-			if (marine.isUnderAttack() && marine.canAttack()) {
-                 for (Unit enemyAttacker : game.enemy().getUnits()) {
-                    if (enemyAttacker.isAttacking()) {
-						if (!marine.isAttacking() && !marine.isMoving()){
-							marine.attack(enemyAttacker);								
-						}
-					}               
-                 }
-              }
-            			
-			if (mAttackers.size() >= nbAttackers){
-				Position basePosition = new Position( (game.mapWidth()- self.getStartLocation().getX())* 32, (game.mapHeight()-self.getStartLocation().getY()) * 32);
-				if (marine.getDistance(basePosition) < 100){
-					marine.attack(randomPosition());
-				}	else {
-					marine.attack(basePosition); 
-				}
-			}
-        }
-			
 						
         //draw my units on screen
         //game.drawTextScreen(10, 25, units.toString());
 		game.drawTextScreen(10, 20, "supply : " + self.supplyTotal() + " used: " + self.supplyUsed());
-		game.drawTextScreen(10, 30, "workers : " + workers.size() );
-		game.drawTextScreen(10, 40, "defenders : " + mDefenders.size() );
+		game.drawTextScreen(10, 30, "workers : " + workers.size() );	
 		game.drawTextScreen(10, 50, "bunkers : " + bunkers.size() );
-		game.drawTextScreen(10, 60, "attackers : " + mAttackers.size() );
+		game.drawTextScreen(10, 40,  "marines : " + marines.size() + " defenders : " + mDefenders.size() + " attackers : " + mAttackers.size() );
     }
 	
 	//Get a valid random position in pixel space
