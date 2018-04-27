@@ -226,7 +226,11 @@ public class TestBot1 extends DefaultBWListener {
 						marine.move(basePosition); 
 					}
 				}else{
-					marine.attack(positionToAttack);	
+					for (Unit enemy : game.getUnitsInRadius(positionToAttack.getX(), positionToAttack.getY(), 50)){
+						if (enemy != null) {
+							marine.attack(enemy);
+						}
+					}
 				}
 			}
 		}
